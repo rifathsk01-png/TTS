@@ -253,7 +253,7 @@ async def tts_receive_text(message: Message, state: FSMContext):
     await processing_msg.delete()
 
     audio_file = io.BytesIO(audio_bytes)
-    audio_file.name = "voice.wav"
+    audio_file.name = "voice.mp3"
 
     await message.answer_voice(
         voice=audio_file,  # type: ignore[arg-type]
