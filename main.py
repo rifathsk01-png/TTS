@@ -121,43 +121,6 @@ async def _notify_admin_new_user(name: str, username: str, chat_id: int):
         logger.warning("Admin has blocked the bot or chat not found.")
 
 
-def _generate_voice(text: str, language: str, gender: str) -> bytes:
-    """
-    Generate TTS audio using pyttsx3 and return raw WAV bytes.
-    pyttsx3 is synchronous; we run it in a thread via asyncio.
-    """
-    engine = pyttsx3.init()
-
-    # Gender: pyttsx3 voices — index 0 is often male, 1 female (system-dependent)
-    voices = engine.getProperty("voices")
-    if gender == "female" and len(voices) > 1:
-        engine.setProperty("voice", voices[1].id)
-    else:
-        engine.setProperty("voice", voices[0].id)
-
-    # Speed adjustment: Bangla text reads slightly slower
-    rate = 130 if language == "bangla" else 150
-    engine.setProperty("rate", rate)
-    engine.setProperty("volume", 1.0)
-
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-        tmp_path = tmp.name
-
-    engine.save_to_file(text, tmp_path)
-    engine.runAndWait()
-    engine.stop()
-
-    with open(tmp_path, "rb") as f:
-        audio_bytes = f.read()
-
-    os.unlink(tmp_path)
-    return audio_bytes
-
-
-async def generate_voice_async(text: str, language: str, gender: str) -> bytes:
-    """Run blocking pyttsx3 in a thread pool to avoid blocking the event loop."""
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _generate_voice, text, language, gender)
 
 
 def _guard_banned(user_data: dict | None) -> bool:
@@ -169,10 +132,29 @@ def _guard_banned(user_data: dict | None) -> bool:
 
 # ─────────────────────────────────────────────
 # /start
-# ─────────────────────────────────────────────
+# ─r.warning("Admin has blocked the bot or chat not found.")
 
-@router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
+
+async def generate_voice_async(text: str, language: str, gender: str) -> bytes:
+    """Generate voice using Google Text-to-Speech (gTTS)."""
+    try:
+        lang_code = "bn" if language == "bangla" else "en"
+        
+        tts = gTTS(text=text, lang=lang_code, slow=False)
+        
+        audio_bytes = io.BytesIO()
+        tts.write_to_fp(audio_bytes)
+        audio_bytes.seek(0)
+        
+        return audio_bytes.getvalue()
+        
+    except Exception as e:
+        logger.error(f"gTTS voice generation failed: {e}")
+        raise
+
+
+def _guard_banned(user_data: dict | None) -> bool:
+    """e: FSMContext):
     await state.clear()
     user = message.from_user
     user_data = db.create_user(user.id, user.username or "", user.full_name or "")
