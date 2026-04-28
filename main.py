@@ -1,10 +1,9 @@
 import os
 import io
+from gtts import gTTS
 import asyncio
-import tempfile
 import logging
 
-import pyttsx3
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.types import (
